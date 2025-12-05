@@ -1,0 +1,72 @@
+body {
+    position: relative;
+    color: #ffffff;
+    background-color: #0000FF;
+    margin: 0;
+    padding: 0;
+    overflow: hidden; /* Prevent scrollbars */
+    height: 100%;
+}
+canvas {
+    display: block; /* Remove inline spacing */
+}
+.overlay {
+    position: fixed;
+    top: 0;          /* Distance from top */
+    left: 0;         /* Distance from left */
+    margin: 0;       /* Optional: remove default margin */
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+}
+#smokeCanvas {
+    mix-blend-mode: screen;
+}
+.ruchmaennchen {
+    position: relative;
+    aspect-ratio: 1;
+    width: 50vmin;
+    height: 50vmin;
+    
+}
+.clothing {
+    --tint-color: #ffffff;
+    width: 100%;
+    height: 100%;
+    background:
+        url('./images/bergmann/colormap.png') no-repeat center/cover,
+        url('./images/bergmann/clothing.png') no-repeat center/cover,
+        var(--tint-color);
+
+    background-blend-mode: multiply;
+    mix-blend-mode: screen;
+}
+.skin {
+    --tint-color: #ffffff;
+    width: 100%;
+    height: 100%;
+    background:
+        url('./images/bergmann/colormap.png') no-repeat center/cover,
+        url('./images/bergmann/skin.png') no-repeat center/cover,
+        var(--tint-color);;
+
+    background-blend-mode: multiply;
+    mask-image: url('./images/bergmann/colormap.png');
+    mask-repeat: no-repeat;
+    mask-size: cover;
+    mask-position: center;
+}
+.acsessories {
+    --tint-color: #ffffff;
+    width: 100%;
+    height: 100%;
+    background:
+        url('./images/bergmann/colormap.png') no-repeat center/cover,
+        url('./images/bergmann/acsessories.png') no-repeat center/cover,
+        var(--tint-color);
+
+    background-blend-mode: multiply;
+    mix-blend-mode: screen;
+}
