@@ -129,11 +129,16 @@ const raeuchermaennchenFragmentShaderSource = fetchSync("./shaders/raeuchermaenn
 const smokeFragmentShaderSource = fetchSync("./shaders/smoke_fragment.glsl");
 const smokeVertexShaderSource = fetchSync("./shaders/smoke_vertex.glsl");
 
+// intro
+const introVertexShaderSource = fetchSync("./shaders/intro/intro_vertex.glsl");
+const introFragmentShaderSource = fetchSync("./shaders/intro/intro_fragment.glsl");
+
 // shader compilation
 const background_program = createProgram(vertexShaderSource, backgroundFragmentShaderSource);
 const raeuchermaennchen_program = createProgram(vertexShaderSource, raeuchermaennchenFragmentShaderSource);
 const smoke_program = createProgram(smokeVertexShaderSource, smokeFragmentShaderSource);
 
+const intro_program = createProgram(introVertexShaderSource,introFragmentShaderSource);
 // load background texture
 const background_tex = loadTexture("/images/background.png")
 
@@ -167,14 +172,14 @@ function hexToRgb(hex) {
     };
 }
 
-
+let intro_timer = 0
 function render(t) {
     // data setup
     let raeuchermaennchen_type = raeuchermaennchen_type_selector.value;
     let definition = data.raeuchermaennchen[raeuchermaennchen_type];
 
     window.smoke_spawn = definition.smoke_spawn;
-
+    
     // set textures for rendering
     let base = definition.base;
     let colormap = definition.colormap;
@@ -210,7 +215,7 @@ function render(t) {
     gl.useProgram(background_program);
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, background_tex);
-    gl.uniform1i(gl.getUniformLocation(smoke_program, 'uTexture'), 0);
+    gl.uniform1i(gl.getUniformLocation(background_program, 'uTexture'), 0);
     gl.uniform2f(gl.getUniformLocation(background_program, 'position'), 0,0);
     gl.uniform2f(gl.getUniformLocation(background_program, 'scale'), 1,1);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -246,7 +251,25 @@ function render(t) {
     gl.uniform2f(gl.getUniformLocation(smoke_program, 'scale'), 1*1/x,1*1/y);
     gl.uniform4f(gl.getUniformLocation(smoke_program, 'uColor'), smoke_color[0]/255,smoke_color[1]/255,smoke_color[2]/255,smoke_density);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-    
+    const angle = Math.max(Math.min((t-200)/2000,1),0) * Math.PI * -1;
+    const intro_matrix = new Float32Array([
+        Math.cos(angle)*0.5,0,Math.sin(angle),-1,
+        0,1,0,0,
+        -Math.sin(angle)*0.5,0,Math.cos(angle),1,
+        0,0,0,1
+    ])
+    const intro_matrix2 = new Float32Array([
+        Math.cos(angle)*-0.5,0,Math.sin(angle),1,
+        0,1,0,0,
+        -Math.sin(angle)*0.5,0,Math.cos(angle),1,
+        0,0,0,1
+    ])
+    gl.useProgram(intro_program);
+    gl.uniformMatrix4fv(gl.getUniformLocation(intro_program, 'uTransformMatrix'), false, intro_matrix);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    gl.uniformMatrix4fv(gl.getUniformLocation(intro_program, 'uTransformMatrix'), false, intro_matrix2);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
     requestAnimationFrame(render);
 }
 
