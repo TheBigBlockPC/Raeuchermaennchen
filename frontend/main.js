@@ -54,11 +54,20 @@ const vertices = new Float32Array([
     -1,  1,
      1,  1
 ]);
-
+const sparcle_vertices = new Float32Array([
+    0,0,
+    1,0,
+    0.25,0.25,
+    0,1,
+    -0.25,0.25,
+    -1,0,
+    -0.25,-0.25,
+    0,-1,
+    0.25,-0.25,
+    1,0,
+]);
 const buffer = gl.createBuffer();
 gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
-
 function loadTexture(url) {
     const tex = gl.createTexture();
 
@@ -174,6 +183,7 @@ function hexToRgb(hex) {
 
 let intro_timer = 0
 function render(t) {
+    
     // data setup
     let raeuchermaennchen_type = raeuchermaennchen_type_selector.value;
     let definition = data.raeuchermaennchen[raeuchermaennchen_type];
@@ -210,6 +220,7 @@ function render(t) {
     // renderer
     let aspect = window.innerWidth / window.innerHeight;
     gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
 
     // draw background
     gl.useProgram(background_program);
@@ -269,7 +280,17 @@ function render(t) {
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     gl.uniformMatrix4fv(gl.getUniformLocation(intro_program, 'uTransformMatrix'), false, intro_matrix2);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-
+    
+    /*
+    gl.bufferData(gl.ARRAY_BUFFER, sparcle_vertices, gl.STATIC_DRAW);
+    gl.useProgram(background_program);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, background_tex);
+    gl.uniform1i(gl.getUniformLocation(background_program, 'uTexture'), 0);
+    gl.uniform2f(gl.getUniformLocation(background_program, 'position'), 0,0);
+    gl.uniform2f(gl.getUniformLocation(background_program, 'scale'), 0.5,0.5);
+    gl.drawArrays(gl.TRIANGLE_FAN, 0, sparcle_vertices.length);
+    */
     requestAnimationFrame(render);
 }
 
