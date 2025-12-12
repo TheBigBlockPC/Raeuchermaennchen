@@ -1,4 +1,5 @@
 const express = require('express');
+const path = require('path');
 const app = express();
 const distPath = path.join(__dirname, 'frontend'); // adjust if different path
 app.use(express.static(distPath));

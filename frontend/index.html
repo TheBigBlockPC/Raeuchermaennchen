@@ -1,26 +1,57 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Page</title>
-    <!-- Link to external CSS -->
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
-    <div class="overlay">
-        <div class="ruchmaennchen">
-            <div class="skin" style="--tint-color: #ff0000">
-                <div class="clothing" style="--tint-color: #00ff00">
-                    <div class="acsessories" style="--tint-color: #0000ff">
-                    </div>
-                </div>
-            </div>
+    <head>
+        <meta charset="UTF-8">
+        <title>Fullscreen Quad WebGL Example</title>
+        <style>
+            body { margin: 0; overflow: hidden; color: #ffffff;}
+            canvas { display: block; width: 100vw; height: 100vh; }
+            .overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                margin: 0;
+                /*width: 100%;*/
+                /*height: 100%;*/
+                background-color: #00000088;
+            }
+        </style>
+        </head>
+    <body>
+        <canvas id="glcanvas"></canvas>
+        <canvas id="smokeCanvas" width="512" height="512"></canvas>
+        <div class="overlay">
+            <h2>Räuchermännchen:</h2>
+            <label>Typ: </label>
+            <select id="raeuchermaennchen_types">
+                <option value="bergmann">Bergmann</option>
+                <option value="wichtel">Wichtel</option>
+            </select><br>
+            <label>Kleidung: </label>
+            <input type="color" id="clothing_color_selector" value="#880000"><br>
+            <label">Haut: </label>
+            <input type="color" id="skin_color_selector" value="#C07F3B"><br>
+            <label>Etc: </label>
+            <input type="color" id="acsessories_color_selector" value="#803900"><br>
+            <h2>Rauch:</h2>
+            <label>Duftrichtung: </label>
+            <select id="smoke_types">
+                <option value="Tanne">Tanne</option>
+                <option value="Weihrauch">Weihrauch</option>
+                <option value="Sandelholz">Sandelholz</option>
+            </select><br>
+            
+            <label>Wind: </label>
+            <input type="range" min="-2" max="2" id="wind" step="0.01"><br>
+            <label>Wind Variation: </label>
+            <input type="range" min="0" max="5" value="0" id="wind_variation" step="0.01"><br>
+            <label>Rauch Dichte: </label>
+            <input type="range" min="0" max="1" value="0.5" id="smoke_density" step="0.01"><br>
+            <h2>Info:</h2>
+            <label id="data"></label><br>
+            <label>Bilder sind KI generiert</label>
         </div>
-    </div>
-    <canvas id="smokeCanvas"></canvas>
-    <div class="overlay"><label id="data"></label></div>
-    <script src="./main.js"></script>
-</body>
+        <script src="smoke.js"></script>
+        <script src="main.js"></script>
+    </body>
 </html>
