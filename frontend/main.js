@@ -13,8 +13,9 @@ function fetchSync(url) {
   }
 }
 
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+const zoom = window.devicePixelRatio;
+canvas.width = Math.round(window.innerWidth * zoom);
+canvas.height = Math.round(window.innerHeight * zoom);
 gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
 
 function compileShader(source, type) {
@@ -98,7 +99,7 @@ function loadTexture(url) {
     return tex;
 }
 
-function defune_raeuchermaennchen(type,smoke_spawn){
+function define_raeuchermaennchen(type,smoke_spawn){
     let colormap = loadTexture(`/images/${type}/colormap.png`)
     let shading = loadTexture(`/images/${type}/shading_map.png`)
     let base = loadTexture(`/images/${type}/base.png`)
@@ -116,14 +117,14 @@ const data = {
         Sandelholz: [182,75,43]
     },
     raeuchermaennchen:{
-        bergmann:defune_raeuchermaennchen("bergmann",[0,-0.38]),
-        wichtel:defune_raeuchermaennchen("wichtel",[-0.15,-0.60])
+        bergmann:define_raeuchermaennchen("bergmann",[0,-0.38]),
+        wichtel:define_raeuchermaennchen("wichtel",[-0.15,-0.60])
     }
 }
 
 // shader code loading
 const vertexShaderSource = fetchSync("./shaders/default_vertex.glsl");
-const backgroundFragmentShaderSource = fetchSync("./shaders/background.glsl");
+const backgroundFragmentShaderSource = fetchSync("./shaders/default_fragment.glsl");
 const raeuchermaennchenFragmentShaderSource = fetchSync("./shaders/raeuchermaennchen_fragment.glsl");
 const smokeFragmentShaderSource = fetchSync("./shaders/smoke_fragment.glsl");
 const smokeVertexShaderSource = fetchSync("./shaders/smoke_vertex.glsl");
@@ -132,6 +133,9 @@ const smokeVertexShaderSource = fetchSync("./shaders/smoke_vertex.glsl");
 const background_program = createProgram(vertexShaderSource, backgroundFragmentShaderSource);
 const raeuchermaennchen_program = createProgram(vertexShaderSource, raeuchermaennchenFragmentShaderSource);
 const smoke_program = createProgram(smokeVertexShaderSource, smokeFragmentShaderSource);
+
+// load background texture
+const background_tex = loadTexture("/images/background.png")
 
 // initialize smoke texture
 const smokeCanvas = document.getElementById('smokeCanvas');
@@ -204,6 +208,9 @@ function render(t) {
 
     // draw background
     gl.useProgram(background_program);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, background_tex);
+    gl.uniform1i(gl.getUniformLocation(smoke_program, 'uTexture'), 0);
     gl.uniform2f(gl.getUniformLocation(background_program, 'position'), 0,0);
     gl.uniform2f(gl.getUniformLocation(background_program, 'scale'), 1,1);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);

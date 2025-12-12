@@ -1,0 +1,70 @@
+# Node modules
+node_modules/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Dependency directories
+jspm_packages/
+
+# Coverage
+coverage/
+*.lcov
+
+# Build output
+dist/
+build/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Editor directories and files
+.vscode/
+.idea/
+*.swp
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Optional npm cache directory
+.npm/
+
+# Parcel cache
+.cache/
+
+# ESLint cache
+.eslintcache
+
+# TypeScript
+*.tsbuildinfo
+
+# Next.js
+.next/
+out/
+
+# SvelteKit
+.svelte-kit/
+
+# Remix
+.build/
+
+# Vite
+.vite/
+
+# Temporary
+tmp/
+temp/
