@@ -7,7 +7,9 @@
             body { margin: 0; overflow: hidden; color: #ffffff; background-color: black;}
             canvas { display: block; width: 100vw; height: 100vh; }
             .overlay {
+                display: grid;
                 position: fixed;
+                grid-template-columns: auto auto;
                 top: 0;
                 left: 0;
                 margin: 0;
@@ -15,40 +17,44 @@
                 /*height: 100%;*/
                 background-color: #00000088;
             }
+            .title {
+                grid-column-start: 1;
+                grid-column-end: 3;
+            }
         </style>
         </head>
     <body>
         <canvas id="glcanvas"></canvas>
         <canvas id="smokeCanvas" width="512" height="512"></canvas>
         <div class="overlay">
-            <h2>Räuchermännchen:</h2>
+            <h2 class="title">Räuchermännchen:</h2>
             <label>Typ: </label>
             <select id="raeuchermaennchen_types">
                 <option value="bergmann">Bergmann</option>
                 <option value="wichtel">Wichtel</option>
-            </select><br>
+            </select>
             <label>Kleidung: </label>
-            <input type="color" id="clothing_color_selector" value="#880000"><br>
-            <label">Haut: </label>
-            <input type="color" id="skin_color_selector" value="#C07F3B"><br>
+            <input type="color" id="clothing_color_selector" value="#880000">
+            <label>Haut: </label>
+            <input type="color" id="skin_color_selector" value="#C07F3B">
             <label>Etc: </label>
-            <input type="color" id="acsessories_color_selector" value="#803900"><br>
-            <h2>Rauch:</h2>
+            <input type="color" id="acsessories_color_selector" value="#803900">
+            <h2 class="title">Rauch:</h2>
             <label>Duftrichtung: </label>
             <select id="smoke_types">
                 <option value="Tanne">Tanne</option>
                 <option value="Weihrauch">Weihrauch</option>
                 <option value="Sandelholz">Sandelholz</option>
-            </select><br>
+            </select>
             
             <label>Wind: </label>
-            <input type="range" min="-2" max="2" id="wind" step="0.01"><br>
+            <input type="range" min="-2" max="2" id="wind" step="0.01">
             <label>Wind Variation: </label>
-            <input type="range" min="0" max="5" value="0" id="wind_variation" step="0.01"><br>
+            <input type="range" min="0" max="5" value="0" id="wind_variation" step="0.01">
             <label>Rauch Dichte: </label>
-            <input type="range" min="0" max="1" value="0.5" id="smoke_density" step="0.01"><br>
-            <h2>Info:</h2>
-            <label id="data"></label><br>
+            <input type="range" min="0" max="1" value="0.5" id="smoke_density" step="0.01">
+            <h2 class="title">Info:</h2>
+            <label id="data"></label>
             <label>Bilder sind KI generiert</label>
         </div>
         <script src="smoke.js"></script>
