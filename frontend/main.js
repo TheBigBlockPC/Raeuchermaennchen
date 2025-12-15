@@ -126,31 +126,37 @@ const data = {
         Sandelholz: [182,75,43]
     },
     raeuchermaennchen:{
-        bergmann:define_raeuchermaennchen("bergmann",[0,-0.38]),
-        wichtel:define_raeuchermaennchen("wichtel",[-0.15,-0.60])
+        bergmann:define_raeuchermaennchen("bergmann",[0,0.12]),
+        wichtel:define_raeuchermaennchen("wichtel",[-0.15,-0.10])
     }
 }
 
 // shader code loading
 const vertexShaderSource = fetchSync("./shaders/default_vertex.glsl");
-const backgroundFragmentShaderSource = fetchSync("./shaders/default_fragment.glsl");
+const defaultFragmentShaderSource = fetchSync("./shaders/default_fragment.glsl");
 const raeuchermaennchenFragmentShaderSource = fetchSync("./shaders/raeuchermaennchen_fragment.glsl");
 const smokeFragmentShaderSource = fetchSync("./shaders/smoke_fragment.glsl");
 const smokeVertexShaderSource = fetchSync("./shaders/smoke_vertex.glsl");
+const OutlineShaderSource = fetchSync("./shaders/game/outline_fragment.glsl");
 
 // intro
 const introVertexShaderSource = fetchSync("./shaders/intro/intro_vertex.glsl");
 const introFragmentShaderSource = fetchSync("./shaders/intro/intro_fragment.glsl");
 
 // shader compilation
-const background_program = createProgram(vertexShaderSource, backgroundFragmentShaderSource);
+const default_textured = createProgram(vertexShaderSource, defaultFragmentShaderSource);
 const raeuchermaennchen_program = createProgram(vertexShaderSource, raeuchermaennchenFragmentShaderSource);
 const smoke_program = createProgram(smokeVertexShaderSource, smokeFragmentShaderSource);
+const outline_program = createProgram(vertexShaderSource, OutlineShaderSource);
 
 const intro_program = createProgram(introVertexShaderSource,introFragmentShaderSource);
 // load background texture
 const background_tex = loadTexture("/images/background.png")
 
+// game icons
+const heart = loadTexture("/images/game/heart.png")
+const shugercane = loadTexture("/images/game/shugercane.png")
+const obstackle = loadTexture("/images/game/snowball.png")
 // initialize smoke texture
 const smokeCanvas = document.getElementById('smokeCanvas');
 const smoke_texture = gl.createTexture();
@@ -181,14 +187,174 @@ function hexToRgb(hex) {
     };
 }
 
-let intro_timer = 0
-function render(t) {
+// game
+let is_game = false
+let scale = 1
+
+let keys = {};
+
+let tutorial_visible = false
+document.addEventListener("keydown", (e) => {
+  keys[e.code] = true;
+  if(tutorial_visible){
+    tutorial_visible = false
+    document.getElementById("tutorial").style="display: none";
+  }
+});
+
+document.addEventListener("keyup", (e) => {
+  keys[e.code] = false;
+});
+
+let player_x = 0
+
+function collide_AABB(x1,y1,w1,h1,x2,y2,w2,h2){
+    return (
+        x1 - w1 < x2 + w2 &&
+        x1 + w1 > x2 - w2 &&
+        y1 - h1 < y2 + h2 &&
+        y1 + h1 > y2 - h2
+    )
+}
+
+const object_type = {
+    COLLECTABLE: 0,
+    OBSTACLE: 1,
+    COLLECTED: -1
+}
+class Falling_object{
+    constructor (x,y,type,speed,on_collected){
+        this.x = x
+        this.y = y
+        this.speed = speed
+        this.type = type
+        this.on_collected = on_collected
+    }
+    update(dt){
+        this.y -= dt * this.speed * 0.5
+        if(collide_AABB(
+            this.x,this.y,0.1,0.1,
+            player_x,-0.5,0.125,0.25
+        )){
+            this.type = -1
+            this.on_collected()
+        }
+    }
+}
+
+let falling_objects = [
+]
+
+let spawn_timer = 0
+let score = 0
+let highscore = 0
+let lives = 3
+let gameover = false
+const score_displays = Array.from(document.getElementsByClassName("score_information"))
+let movement_dir = 0
+const show_hitboxes = false
+let show_tutorial = true
+document.getElementById("play_again").onclick = ()=>{
+    player_x = 0;
+    score = 0;
+    gameover = false;
+    movement_dir = 0;
+    document.getElementById("gameover").style="display: none";
+    lives = 3
+}
+document.getElementById("play").onclick = ()=>{
+    player_x = 0;
+    score = 0;
+    gameover = false;
+    movement_dir = 0;
+    document.getElementById("gameover").style="display: none";
+    lives = 3;
+    is_game = true;
+    scale = 0.5;
     
+    if(show_tutorial){
+        tutorial_visible = true
+        show_tutorial = false
+        document.getElementById("tutorial").style="";
+    }
+}
+document.getElementById("quit").onclick = ()=>{
+    scale = 1;
+    player_x = 0;
+    scale = 1;
+    document.getElementById("gameover").style="display: none";
+    is_game = false;
+    score_displays.forEach(e => {e.textContent = ""})
+}
+
+let intro_timer = 0
+let last_time = 0
+function render(t) {
+    let delta = (t-last_time)/1000
+    last_time = t
+    if(Number.isNaN(delta)){
+        delta = 0
+    }
+    // generate aspect correction
+    let aspect = window.innerWidth / window.innerHeight;
+    let x_scale = Math.min(1,1/aspect);
+    let y_scale = Math.min(1,aspect);
+
+    // game logic
+    if(is_game && !tutorial_visible){
+        let speed = 1 + score* 0.01
+        if (keys["ArrowLeft"] | keys["KeyA"] && !gameover) {
+            movement_dir = -1;
+            player_x -= delta * 1.5 * ((speed-1)*0.5+1)
+        }
+        if (keys["ArrowRight"] | keys["KeyD"] && !gameover) {
+            movement_dir = 1;
+            player_x += delta * 1.5 * ((speed-1)*0.5+1)
+        }
+        //player_x += delta * 1.5 * ((speed-1)*0.5+1) * movement_dir
+        player_x = Math.max(-1,Math.min(1,player_x))
+
+        spawn_timer += delta * speed
+        if (spawn_timer > 1 && !gameover){
+            spawn_timer = 0
+            let spawn_x = (Math.random() * 2 - 1)
+            let is_collectable = Math.random() < 0.5
+            if(is_collectable){
+                falling_objects.push(new Falling_object(spawn_x,1,object_type.COLLECTABLE,speed,()=>{
+                    score++;
+                    if(score % 10 == 0){
+                        lives++;
+                    }
+                }))
+            }else{
+                falling_objects.push(new Falling_object(spawn_x,1,object_type.OBSTACLE,speed,()=>{
+                    lives--;
+                    if(lives == 0){
+                        document.getElementById("gameover").style=""
+                        gameover = true
+                        falling_objects = []
+                    }
+                }))
+
+            }
+        }
+        score_displays.forEach(e => {e.textContent = `Score: ${score} Highscore: ${highscore}`})
+        highscore = Math.max(highscore,score)
+        falling_objects.forEach(obj => {obj.update(delta)})
+        falling_objects = falling_objects.filter(obj => obj.y > -2 && obj.type != object_type.COLLECTED)
+    }
     // data setup
     let raeuchermaennchen_type = raeuchermaennchen_type_selector.value;
     let definition = data.raeuchermaennchen[raeuchermaennchen_type];
 
-    window.smoke_spawn = definition.smoke_spawn;
+    let smoke_spawn_x = definition.smoke_spawn[0] * scale + player_x
+    let smoke_spawn_y = definition.smoke_spawn[1] * scale - 0.5
+    smoke_spawn_x = smoke_spawn_x / Math.max(1,1/aspect);
+    smoke_spawn_y = smoke_spawn_y*y_scale
+    window.smoke_spawn = [
+        smoke_spawn_x,
+        smoke_spawn_y,
+    ]
     
     // set textures for rendering
     let base = definition.base;
@@ -211,24 +377,23 @@ function render(t) {
     let smoke_density = parseFloat(smoke_density_selector.value)
 
     // smoke processing
-    window.process_smoke(t)
+    window.process_smoke(delta)
 
     // update smoke texture
     gl.bindTexture(gl.TEXTURE_2D, smoke_texture);
     gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, smokeCanvas);
 
     // renderer
-    let aspect = window.innerWidth / window.innerHeight;
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
 
     // draw background
-    gl.useProgram(background_program);
+    gl.useProgram(default_textured);
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, background_tex);
-    gl.uniform1i(gl.getUniformLocation(background_program, 'uTexture'), 0);
-    gl.uniform2f(gl.getUniformLocation(background_program, 'position'), 0,0);
-    gl.uniform2f(gl.getUniformLocation(background_program, 'scale'), 1,1);
+    gl.uniform1i(gl.getUniformLocation(default_textured, 'uTexture'), 0);
+    gl.uniform2f(gl.getUniformLocation(default_textured, 'position'), 0,0);
+    gl.uniform2f(gl.getUniformLocation(default_textured, 'scale'), 1,1);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
     // draw raeuchermaennchen
@@ -242,8 +407,8 @@ function render(t) {
     gl.uniform1i(gl.getUniformLocation(raeuchermaennchen_program, 'uColorTexture'), 0);
     gl.uniform1i(gl.getUniformLocation(raeuchermaennchen_program, 'uShadingTexture'), 1);
     gl.uniform1i(gl.getUniformLocation(raeuchermaennchen_program, 'uBaseTexture'), 2);
-    gl.uniform2f(gl.getUniformLocation(raeuchermaennchen_program, 'position'), 0,-0.5);
-    gl.uniform2f(gl.getUniformLocation(raeuchermaennchen_program, 'scale'), 0.5/aspect,0.5);
+    gl.uniform2f(gl.getUniformLocation(raeuchermaennchen_program, 'position'), player_x*x_scale,-0.5*y_scale);
+    gl.uniform2f(gl.getUniformLocation(raeuchermaennchen_program, 'scale'), 0.5*scale*x_scale,0.5*scale*y_scale );
     gl.uniformMatrix3fv(gl.getUniformLocation(raeuchermaennchen_program, 'uColorMatrix'), false, color_matrix);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
@@ -275,20 +440,83 @@ function render(t) {
         -Math.sin(angle)*0.5,0,Math.cos(angle),1,
         0,0,0,1
     ])
+
+    // game
+    if(is_game){
+        gl.useProgram(default_textured);
+        gl.activeTexture(gl.TEXTURE0);
+        gl.uniform1i(gl.getUniformLocation(default_textured, 'uTexture'), 0);
+        falling_objects.forEach(obj => {
+            let x = obj.x*x_scale;
+            let y = obj.y*y_scale;
+            //gl.uniform3f(gl.getUniformLocation(outline_program, 'color'), 1,1,1);
+            if(obj.type == object_type.COLLECTABLE){
+                
+                gl.bindTexture(gl.TEXTURE_2D, shugercane);
+            }
+            if(obj.type == object_type.OBSTACLE){
+                gl.bindTexture(gl.TEXTURE_2D, obstackle);
+            }
+            //gl.uniform1f(gl.getUniformLocation(default_textured, 'width'), 0.1);
+            gl.uniform2f(gl.getUniformLocation(default_textured, 'position'), x,y);
+            gl.uniform2f(gl.getUniformLocation(default_textured, 'scale'), x_scale*0.1,y_scale*0.1);
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        })
+        
+        gl.bindTexture(gl.TEXTURE_2D, heart);
+
+        let offset = (lives-1)/2 * 0.2
+        for(let i = 0;i<lives;i++){
+            gl.uniform2f(gl.getUniformLocation(default_textured, 'position'), (player_x+0.2*i-offset)*x_scale,-0.8*y_scale);
+            gl.uniform2f(gl.getUniformLocation(default_textured, 'scale'), x_scale*0.1,y_scale*0.1);
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        }
+
+        if(show_hitboxes){
+            gl.useProgram(outline_program);
+            gl.uniform3f(gl.getUniformLocation(outline_program, 'color'), 1,1,1);
+            gl.uniform1f(gl.getUniformLocation(outline_program, 'width'), 0.01);
+            gl.uniform2f(gl.getUniformLocation(outline_program, 'position'), 0,0);
+            gl.uniform2f(gl.getUniformLocation(outline_program, 'scale'), x_scale,y_scale);
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+            gl.uniform3f(gl.getUniformLocation(outline_program, 'color'), 1,0,1);
+            gl.uniform1f(gl.getUniformLocation(outline_program, 'width'), 0.05);
+            gl.uniform2f(gl.getUniformLocation(outline_program, 'position'), player_x*x_scale,-0.5*y_scale);
+            gl.uniform2f(gl.getUniformLocation(outline_program, 'scale'), x_scale*0.125,y_scale*0.25);
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+            falling_objects.forEach(obj => {
+                let x = obj.x*x_scale;
+                let y = obj.y*y_scale;
+                gl.uniform3f(gl.getUniformLocation(outline_program, 'color'), 1,1,1);
+                if(obj.type == object_type.COLLECTABLE){
+                    
+                    gl.uniform3f(gl.getUniformLocation(outline_program, 'color'), 1,1,0);
+                }
+                if(obj.type == object_type.OBSTACLE){
+                    gl.uniform3f(gl.getUniformLocation(outline_program, 'color'), 1,0,0);
+                }
+                gl.uniform1f(gl.getUniformLocation(outline_program, 'width'), 0.1);
+                gl.uniform2f(gl.getUniformLocation(outline_program, 'position'), x,y);
+                gl.uniform2f(gl.getUniformLocation(outline_program, 'scale'), x_scale*0.1,y_scale*0.1);
+                gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+            })
+        }
+    }
+    //intro
     gl.useProgram(intro_program);
     gl.uniformMatrix4fv(gl.getUniformLocation(intro_program, 'uTransformMatrix'), false, intro_matrix);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     gl.uniformMatrix4fv(gl.getUniformLocation(intro_program, 'uTransformMatrix'), false, intro_matrix2);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-    
     /*
     gl.bufferData(gl.ARRAY_BUFFER, sparcle_vertices, gl.STATIC_DRAW);
-    gl.useProgram(background_program);
+    gl.useProgram(default_textured);
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, background_tex);
-    gl.uniform1i(gl.getUniformLocation(background_program, 'uTexture'), 0);
-    gl.uniform2f(gl.getUniformLocation(background_program, 'position'), 0,0);
-    gl.uniform2f(gl.getUniformLocation(background_program, 'scale'), 0.5,0.5);
+    gl.uniform1i(gl.getUniformLocation(default_textured, 'uTexture'), 0);
+    gl.uniform2f(gl.getUniformLocation(default_textured, 'position'), 0,0);
+    gl.uniform2f(gl.getUniformLocation(default_textured, 'scale'), 0.5,0.5);
     gl.drawArrays(gl.TRIANGLE_FAN, 0, sparcle_vertices.length);
     */
     requestAnimationFrame(render);

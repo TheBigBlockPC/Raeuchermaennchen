@@ -108,21 +108,19 @@ window.addEventListener('resize', ()=>{renderer.resizeCanvas()});
 
 // initialize particle system + spawn loop
 if(!window.smoke_spawn ){window.smoke_spawn = [0,0]}
-setInterval(()=>{
-    let [x,y] = window.smoke_spawn;
-    particle_system.spawn_particle(x,y)
-},10)
+//setInterval(()=>{
+//    let [x,y] = window.smoke_spawn;
+//    particle_system.spawn_particle(x,y)
+//},10)
 
 // get relevant sliders for wind config
 const wind_slider = document.getElementById("wind");
 const wind_variation_slider = document.getElementById("wind_variation")
 
-let last_time = 0
-window.process_smoke = (t)=>{
-    // delat time (keeps everything at the same speed regardless of FPS)
-    let delta = (t-last_time)/1000
-    last_time = t
-
+window.process_smoke = (delta)=>{
+    let [x,y] = window.smoke_spawn;
+    particle_system.spawn_particle(x,y)
+    //particle_system.spawn_particle(x,y)
     // wind calculation
     let wind_constant = parseFloat(wind_slider.value);
     let wind_variation = parseFloat(wind_variation_slider.value);
