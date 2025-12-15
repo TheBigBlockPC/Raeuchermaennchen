@@ -156,7 +156,10 @@ const background_tex = loadTexture("/images/background.png")
 // game icons
 const heart = loadTexture("/images/game/heart.png")
 const shugercane = loadTexture("/images/game/shugercane.png")
-const obstackle = loadTexture("/images/game/snowball.png")
+const snowball = loadTexture("/images/game/snowball.png")
+const gingerbread = loadTexture("/images/game/gingerbread.png")
+const snowman = loadTexture("/images/game/snowman.png")
+
 // initialize smoke texture
 const smokeCanvas = document.getElementById('smokeCanvas');
 const smoke_texture = gl.createTexture();
@@ -188,6 +191,9 @@ function hexToRgb(hex) {
 }
 
 // game
+function randomInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
 let is_game = false
 let scale = 1
 
@@ -223,17 +229,22 @@ const object_type = {
     COLLECTED: -1
 }
 class Falling_object{
-    constructor (x,y,type,speed,on_collected){
+    constructor (x,y,type,speed,on_collected,texture){
         this.x = x
         this.y = y
         this.speed = speed
         this.type = type
         this.on_collected = on_collected
+        this.texture = texture
     }
     update(dt){
         this.y -= dt * this.speed * 0.5
+        let hitbox_size = 0.1
+        if(this.type == object_type.OBSTACLE){
+            hitbox_size = 0.07
+        }
         if(collide_AABB(
-            this.x,this.y,0.1,0.1,
+            this.x,this.y,hitbox_size,hitbox_size,
             player_x,-0.5,0.125,0.25
         )){
             this.type = -1
@@ -252,8 +263,11 @@ let lives = 3
 let gameover = false
 const score_displays = Array.from(document.getElementsByClassName("score_information"))
 let movement_dir = 0
-const show_hitboxes = false
-let show_tutorial = true
+const show_hitboxes = true
+let show_tutorial = false
+
+let invincibility_timer = 0
+
 document.getElementById("play_again").onclick = ()=>{
     player_x = 0;
     score = 0;
@@ -320,28 +334,56 @@ function render(t) {
             let spawn_x = (Math.random() * 2 - 1)
             let is_collectable = Math.random() < 0.5
             if(is_collectable){
-                falling_objects.push(new Falling_object(spawn_x,1,object_type.COLLECTABLE,speed,()=>{
-                    score++;
-                    if(score % 10 == 0){
-                        lives++;
-                    }
-                }))
+                if(Math.random() < 0.2){
+                    falling_objects.push(new Falling_object(spawn_x,1,object_type.COLLECTABLE,speed,()=>{
+                        score += 2;
+                        if(score % 10 <= 1){
+                            lives++;
+                            lives = Math.min(5,lives);
+                        }
+                    },gingerbread))
+                }else{
+                    falling_objects.push(new Falling_object(spawn_x,1,object_type.COLLECTABLE,speed,()=>{
+                        score++;
+                        if(score % 10 == 0){
+                            lives++;
+                            lives = Math.min(5,lives);
+                        }
+                    },shugercane))
+                }
             }else{
-                falling_objects.push(new Falling_object(spawn_x,1,object_type.OBSTACLE,speed,()=>{
-                    lives--;
-                    if(lives == 0){
-                        document.getElementById("gameover").style=""
-                        gameover = true
-                        falling_objects = []
-                    }
-                }))
-
+                if(Math.random() < 0.2){
+                    falling_objects.push(new Falling_object(spawn_x,1,object_type.OBSTACLE,speed,()=>{
+                        if(invincibility_timer > 0) return;
+                        lives-= 2;
+                        invincibility_timer = 1
+                        if(lives <= 0){
+                            document.getElementById("gameover").style=""
+                            gameover = true
+                            falling_objects = []
+                            invincibility_timer = 0
+                        }
+                    },snowman))
+                }else{
+                    falling_objects.push(new Falling_object(spawn_x,1,object_type.OBSTACLE,speed,()=>{
+                        if(invincibility_timer > 0) return;
+                        lives--;
+                        invincibility_timer = 1
+                        if(lives == 0){
+                            document.getElementById("gameover").style=""
+                            gameover = true
+                            falling_objects = []
+                            invincibility_timer = 0
+                        }
+                    },snowball))
+                }
             }
         }
         score_displays.forEach(e => {e.textContent = `Score: ${score} Highscore: ${highscore}`})
         highscore = Math.max(highscore,score)
         falling_objects.forEach(obj => {obj.update(delta)})
         falling_objects = falling_objects.filter(obj => obj.y > -2 && obj.type != object_type.COLLECTED)
+        invincibility_timer -= delta
     }
     // data setup
     let raeuchermaennchen_type = raeuchermaennchen_type_selector.value;
@@ -365,12 +407,18 @@ function render(t) {
     var skin_color = hexToRgb(skin_color_selector.value);
     var clothing_color = hexToRgb(clothing_color_selector.value);
     var acsessories_color = hexToRgb(acsessories_color_selector.value);
-    const color_matrix = new Float32Array([
+    let color_matrix = new Float32Array([
         skin_color.r, clothing_color.r, acsessories_color.r,
         skin_color.g, clothing_color.g, acsessories_color.g,
         skin_color.b, clothing_color.b, acsessories_color.b,
     ]);
-
+    if(invincibility_timer > 0 && (invincibility_timer%0.25)<0.125){
+        color_matrix = new Float32Array([
+            1,1,1,
+            1,1,1,
+            1,1,1
+        ])
+    }
     // smoke setup
     let smoke_type = smoke_type_selector.value
     let smoke_color = data.smoke_types[smoke_type]
@@ -449,15 +497,8 @@ function render(t) {
         falling_objects.forEach(obj => {
             let x = obj.x*x_scale;
             let y = obj.y*y_scale;
-            //gl.uniform3f(gl.getUniformLocation(outline_program, 'color'), 1,1,1);
-            if(obj.type == object_type.COLLECTABLE){
-                
-                gl.bindTexture(gl.TEXTURE_2D, shugercane);
-            }
-            if(obj.type == object_type.OBSTACLE){
-                gl.bindTexture(gl.TEXTURE_2D, obstackle);
-            }
-            //gl.uniform1f(gl.getUniformLocation(default_textured, 'width'), 0.1);
+
+            gl.bindTexture(gl.TEXTURE_2D, obj.texture);
             gl.uniform2f(gl.getUniformLocation(default_textured, 'position'), x,y);
             gl.uniform2f(gl.getUniformLocation(default_textured, 'scale'), x_scale*0.1,y_scale*0.1);
             gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -490,15 +531,15 @@ function render(t) {
                 let y = obj.y*y_scale;
                 gl.uniform3f(gl.getUniformLocation(outline_program, 'color'), 1,1,1);
                 if(obj.type == object_type.COLLECTABLE){
-                    
                     gl.uniform3f(gl.getUniformLocation(outline_program, 'color'), 1,1,0);
+                    gl.uniform2f(gl.getUniformLocation(outline_program, 'scale'), x_scale*0.1,y_scale*0.1);
                 }
                 if(obj.type == object_type.OBSTACLE){
                     gl.uniform3f(gl.getUniformLocation(outline_program, 'color'), 1,0,0);
+                    gl.uniform2f(gl.getUniformLocation(outline_program, 'scale'), x_scale*0.07,y_scale*0.07);
                 }
                 gl.uniform1f(gl.getUniformLocation(outline_program, 'width'), 0.1);
                 gl.uniform2f(gl.getUniformLocation(outline_program, 'position'), x,y);
-                gl.uniform2f(gl.getUniformLocation(outline_program, 'scale'), x_scale*0.1,y_scale*0.1);
                 gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
             })
         }
